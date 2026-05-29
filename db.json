@@ -1,0 +1,14 @@
+{
+  "products": [],
+  "customers": [],
+  "invoices": [],
+  "returns": [],
+  "staff": [
+    {
+      "id": 1,
+      "name": "এডমিন",
+      "role": "Admin",
+      "pin": "1968"
+    }
+  ]
+}
