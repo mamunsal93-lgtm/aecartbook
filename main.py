@@ -93,7 +93,93 @@ async def dashboard():
     except:
         low_stock_count = 0
 
-    # Tailwind-based Premium Dark Theme HTML Page
+    # 1. Generate Invoices HTML dynamically
+    invoices_html = ""
+    if not invoices:
+        invoices_html = '<p class="text-slate-500 text-center py-8">কোনো মেমো পাওয়া যায়নি</p>'
+    else:
+        for inv in reversed(invoices):
+            total = float(inv.get("totalAmount", 0))
+            discount = float(inv.get("discount", 0))
+            paid = float(inv.get("paidAmount", 0))
+            due = total - paid - discount
+            invoices_html += f"""
+            <div class="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="bg-indigo-950 text-indigo-400 font-bold px-3 py-1 text-xs rounded-lg border border-indigo-900/40">#{inv.get("id")}</span>
+                    <span class="text-slate-500 text-xs">{inv.get("dateStr")}</span>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-100">{inv.get("customerName")}</h3>
+                    <p class="text-slate-400 text-xs">মোবাইল: {inv.get("customerPhone")} | ঠিকানা: {inv.get("customerAddress")}</p>
+                </div>
+                <hr class="border-slate-700/30">
+                <div class="grid grid-cols-4 gap-2 text-center text-xs md:text-sm">
+                    <div>
+                        <p class="text-slate-500">মোট বিল</p>
+                        <p class="font-bold text-white">৳{total:,.1f}</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500">ডিসকাউন্ট</p>
+                        <p class="font-bold text-red-400">৳{discount:,.1f}</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500">নগদ পরিশোধ</p>
+                        <p class="font-bold text-emerald-400">৳{paid:,.1f}</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500">অবশিষ্ট বকেয়া</p>
+                        <p class="font-bold text-amber-500">৳{due:,.1f}</p>
+                    </div>
+                </div>
+            </div>
+            """
+
+    # 2. Generate Products HTML dynamically
+    products_html = ""
+    if not products:
+        products_html = '<p class="text-slate-500 text-center py-8">কোনো পণ্য তথ্য নেই</p>'
+    else:
+        sorted_products = sorted(products, key=lambda x: int(x.get("quantity", 0)))
+        for prod in sorted_products:
+            qty = int(prod.get("quantity", 0))
+            low_stock = int(prod.get("lowStockCount", 5))
+            badge_class = "bg-red-950 text-red-400 border border-red-950" if qty <= low_stock else "bg-emerald-950 text-emerald-400 border border-emerald-950"
+            products_html += f"""
+            <div class="bg-slate-800/30 border border-slate-700/20 rounded-xl p-3 flex justify-between items-center">
+                <div>
+                    <p class="font-bold text-sm text-slate-200">{prod.get("name")}</p>
+                    <p class="text-slate-500 text-xs mt-0.5">বিক্রয় মূল্য: ৳{float(prod.get("sellingPrice", 0)):,.1f}</p>
+                </div>
+                <div class="text-right">
+                    <span class="{badge_class} px-2.5 py-1 text-xs font-bold rounded-lg pb-1 block">
+                        স্টক: {qty}টি
+                    </span>
+                </div>
+            </div>
+            """
+
+    # 3. Generate Customers HTML dynamically
+    customers_html = ""
+    if not customers:
+        customers_html = '<p class="text-slate-500 text-center py-8 col-span-full">কোনো গ্রাহক তথ্য নেই</p>'
+    else:
+        for cust in customers:
+            customers_html += f"""
+            <div class="bg-slate-800/30 border border-slate-700/20 rounded-xl p-4 flex justify-between items-center">
+                <div>
+                    <p class="font-bold text-slate-200">{cust.get("name")}</p>
+                    <p class="text-slate-400 text-xs mt-0.5">{cust.get("phone")}</p>
+                    <p class="text-slate-500 text-[11px]">{cust.get("address")}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-slate-500 text-xs font-semibold">মোট বকেয়া</p>
+                    <p class="font-bold text-rose-400 text-lg">৳{float(cust.get("previousDues", 0)):,.1f}</p>
+                </div>
+            </div>
+            """
+
+    # Tailwind-based Premium Dark Theme HTML Page without nested block CSS
     html_content = f"""
     <!DOCTYPE html>
     <html lang="bn">
@@ -103,21 +189,14 @@ async def dashboard():
         <title>আলম এন্টারপ্রাইজ - অটো-লাইভ ড্যাশবোর্ড</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
-        <style>
-            body {{
-                font-family: 'Hind Siliguri', sans-serif;
-                background-color: #0F172A;
-                color: #F8FAFC;
-            }}
-        </style>
     </head>
-    <body class="p-4 md:p-8">
+    <body style="font-family: 'Hind Siliguri', sans-serif;" class="bg-[#0F172A] text-[#F8FAFC] p-4 md:p-8">
         <div class="max-w-6xl mx-auto space-y-6">
             
             <!-- Navbar Banner -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 bg-slate-900">
                         <h1 class="text-2xl md:text-3xl font-bold text-white">আলম এন্টারপ্রাইজ</h1>
                         <span class="bg-emerald-950 text-emerald-400 text-xs px-3 py-1 font-bold rounded-full border border-emerald-800/50">
                             🟢 অটো-লাইভ সিঙ্ক অ্যাক্টিভ
@@ -127,7 +206,7 @@ async def dashboard():
                 </div>
                 <div class="bg-slate-800/80 px-4 py-3 rounded-xl border border-slate-700/50 text-right">
                     <p class="text-slate-400 text-xs font-semibold">⏰ শেষ ক্লাউড সিঙ্ক</p>
-                    <p class="text-emerald-400 font-bold text-sm mt-0.5">{{last_updated}}</p>
+                    <p class="text-emerald-400 font-bold text-sm mt-0.5">{last_updated}</p>
                 </div>
             </div>
 
@@ -136,8 +215,8 @@ async def dashboard():
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
                     <div>
                         <p class="text-slate-400 text-sm font-semibold">মোট সেলস</p>
-                        <p class="text-3xl font-bold text-blue-400 mt-1">৳{{total_sales:,.2f}}</p>
-                        <p class="text-slate-500 text-xs mt-1">মোট {{len(invoices)}} টি মেমো</p>
+                        <p class="text-3xl font-bold text-blue-400 mt-1">৳{total_sales:,.2f}</p>
+                        <p class="text-slate-500 text-xs mt-1">মোট {len(invoices)} টি মেমো</p>
                     </div>
                     <div class="bg-blue-500/10 text-blue-400 text-2xl p-3 rounded-full">📈</div>
                 </div>
@@ -145,7 +224,7 @@ async def dashboard():
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
                     <div>
                         <p class="text-slate-400 text-sm font-semibold">ক্যাশ কালেকশন</p>
-                        <p class="text-3xl font-bold text-emerald-400 mt-1">৳{{total_cash_collected:,.2f}}</p>
+                        <p class="text-3xl font-bold text-emerald-400 mt-1">৳{total_cash_collected:,.2f}</p>
                         <p class="text-slate-500 text-xs mt-1">নগদ ও বকেয়া আদায়</p>
                     </div>
                     <div class="bg-emerald-500/10 text-emerald-400 text-2xl p-3 rounded-full">💵</div>
@@ -154,7 +233,7 @@ async def dashboard():
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
                     <div>
                         <p class="text-slate-400 text-sm font-semibold">মার্কেট বকেয়া</p>
-                        <p class="text-3xl font-bold text-red-400 mt-1">৳{{total_dues:,.2f}}</p>
+                        <p class="text-3xl font-bold text-red-400 mt-1">৳{total_dues:,.2f}</p>
                         <p class="text-slate-500 text-xs mt-1">গ্রাহকের কাছে বকেয়া</p>
                     </div>
                     <div class="bg-red-500/10 text-red-400 text-2xl p-3 rounded-full">📝</div>
@@ -163,53 +242,23 @@ async def dashboard():
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center justify-between">
                     <div>
                         <p class="text-slate-400 text-sm font-semibold">লৌ-স্টক পণ্য</p>
-                        <p class="text-3xl font-bold text-amber-500 mt-1">{{low_stock_count}} টি</p>
+                        <p class="text-3xl font-bold text-amber-500 mt-1">{low_stock_count} টি</p>
                         <p class="text-slate-500 text-xs mt-1">রি-অর্ডার করার উপযুক্ত</p>
                     </div>
                     <div class="bg-amber-500/10 text-amber-400 text-2xl p-3 rounded-full">⚠️</div>
                 </div>
             </div>
 
-            <!-- Content Area -->
+            <!-- Content Area: Memos, Products & Customers -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Live Invoices/Memos List -->
+                
+                <!-- Live Invoices/Memos List (Width: 2 cols on big screens) -->
                 <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                     <h2 class="text-lg font-bold text-white flex items-center gap-2">
                         <span>📄</span> আজকের লাইভ মেমো সমূহ
                     </h2>
                     <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                        {"" if invoices else '<p class="text-slate-500 text-center py-8">কোনো মেমো পাওয়া যায়নি</p>'}
-                        {"".join(f'''
-                        <div class="bg-slate-800/40 border border-slate-700/30 rounded-xl p-4 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="bg-indigo-950 text-indigo-400 font-bold px-3 py-1 text-xs rounded-lg border border-indigo-900/40">#{{inv.get("id")}}</span>
-                                <span class="text-slate-500 text-xs">{{inv.get("dateStr")}}</span>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-slate-100">{{inv.get("customerName")}}</h3>
-                                <p class="text-slate-400 text-xs">মোবাইল: {{inv.get("customerPhone")}} | ঠিকানা: {{inv.get("customerAddress")}}</p>
-                            </div>
-                            <hr class="border-slate-700/30">
-                            <div class="grid grid-cols-4 gap-2 text-center text-xs md:text-sm">
-                                <div>
-                                    <p class="text-slate-500">মোট বিল</p>
-                                    <p class="font-bold text-white">৳{{float(inv.get("totalAmount", 0)):,.1f}}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500">ডিসকাউন্ট</p>
-                                    <p class="font-bold text-red-400">৳{{float(inv.get("discount", 0)):,.1f}}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500">নগদ পরিশোধ</p>
-                                    <p class="font-bold text-emerald-400">৳{{float(inv.get("paidAmount", 0)):,.1f}}</p>
-                                </div>
-                                <div>
-                                    <p class="text-slate-500">অবশিষ্ট বকেয়া</p>
-                                    <p class="font-bold text-amber-500">৳{{(float(inv.get("totalAmount", 0)) - float(inv.get("paidAmount", 0)) - float(inv.get("discount", 0))):,.1f}}</p>
-                                </div>
-                            </div>
-                        </div>
-                        ''' for inv in reversed(invoices))}
+                        {invoices_html}
                     </div>
                 </div>
 
@@ -219,46 +268,22 @@ async def dashboard():
                         <span>📦</span> লাইভ স্টক শেষ ও সকল পণ্য
                     </h2>
                     <div class="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-                        {"" if products else '<p class="text-slate-500 text-center py-8">কোনো পণ্য তথ্য নেই</p>'}
-                        {"".join(f'''
-                        <div class="bg-slate-800/30 border border-slate-700/20 rounded-xl p-3 flex justify-between items-center">
-                            <div>
-                                <p class="font-bold text-sm text-slate-200">{{prod.get("name")}}</p>
-                                <p class="text-slate-500 text-xs mt-0.5">বিক্রয় মূল্য: ৳{{float(prod.get("sellingPrice", 0)):,.1f}}</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="{"bg-red-950 text-red-400 border border-red-950" if int(prod.get("quantity", 0)) <= int(prod.get("lowStockCount", 5)) else "bg-emerald-950 text-emerald-400 border border-emerald-950"} px-2.5 py-1 text-xs font-bold rounded-lg pb-1 block">
-                                    স্টক: {{prod.get("quantity")}}টি
-                                </span>
-                            </div>
-                        </div>
-                        ''' for prod in sorted(products, key=lambda x: int(x.get("quantity", 0))))}
+                        {products_html}
                     </div>
                 </div>
+
             </div>
 
-            <!-- Customer Contacts -->
+            <!-- Customer Contacts section -->
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                 <h2 class="text-lg font-bold text-white flex items-center gap-2">
                     <span>👥</span> গ্রাহক তালিকা ও খতিয়ান বকেয়া
                 </h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto pr-2">
-                    {"" if customers else '<p class="text-slate-500 text-center py-8 col-span-full">কোনো গ্রাহক তথ্য নেই</p>'}
-                    {"".join(f'''
-                    <div class="bg-slate-800/30 border border-slate-700/20 rounded-xl p-4 flex justify-between items-center">
-                        <div>
-                            <p class="font-bold text-slate-200">{{cust.get("name")}}</p>
-                            <p class="text-slate-400 text-xs mt-0.5">{{cust.get("phone")}}</p>
-                            <p class="text-slate-500 text-[11px]">{{cust.get("address")}}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-slate-500 text-xs font-semibold">মোট বকেয়া</p>
-                            <p class="font-bold text-rose-400 text-lg">৳{{float(cust.get("previousDues", 0)):,.1f}}</p>
-                        </div>
-                    </div>
-                    ''' for cust in customers)}
+                    {customers_html}
                 </div>
             </div>
+
         </div>
     </body>
     </html>
